@@ -36,3 +36,21 @@ let parsePrice (cells: string[]) : Price = {
 }
 
 let prices = readRows "data.csv" |> List.map parsePrice
+
+// 2. Вспомогательные функции работы с датами и фильтрации
+let visitDates (items: Price list) =
+    items |> List.map (fun x -> x.Date) |> List.distinct |> List.sort
+
+let firstVisit (items: Price list) = visitDates items |> List.head
+
+let lastVisit (items: Price list) = visitDates items |> List.last
+
+let onDate (targetDate: System.DateTime) (items: Price list) =
+    items |> List.filter (fun x -> x.Date = targetDate)
+
+// 3. Расчет стоимости корзины по магазинам (от дешевой к дорогой)
+let basketByShop (items: Price list) =
+    items
+    |> List.groupBy (fun x -> x.Shop)
+    |> List.map (fun (shop, list) -> (shop, list |> List.sumBy (fun x -> x.Price)))
+    |> List.sortBy (fun (_, total) -> total)
