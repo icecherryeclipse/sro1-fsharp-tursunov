@@ -96,3 +96,41 @@ let basketChange (items: Price list) =
 let promoShare (items: Price list) =
     let promoCount = items |> List.filter (fun x -> x.IsPromo) |> List.length |> float
     (promoCount / float (List.length items)) * 100.0
+
+
+// 8. Своя метрика: Продукт с наибольшим процентным изменением цены за 7 дней
+let mostChangedProductOverall (items: Price list) =
+    let v1 = onDate (firstVisit items) items
+    let v2 = onDate (lastVisit items) items
+    v1 |> List.map (fun p1 ->
+        let p2 = v2 |> List.find (fun x -> x.Shop = p1.Shop && x.Product = p1.Product)
+        let pct = changePercent p1.Price p2.Price
+        (p1.Product, p1.Shop, pct))
+    |> List.maxBy (fun (_, _, pct) -> abs pct)
+
+// 9. Вывод итогового отчета
+let printReport (items: Price list) =
+    let lDate = lastVisit items
+    let lastBaskets = items |> onDate lDate |> basketByShop
+    let (gapTenge, gapPercent) = basketGap lastBaskets
+    let cheapestCats = items |> onDate lDate |> cheapestShopByCategory
+    let (varProd, varGap) = mostVariableProduct items
+    let changes = basketChange items
+    let promo = promoShare items
+    let (cProd, cShop, cPct) = mostChangedProductOverall items
+
+    printfn "==="
+    printfn "Корзина продуктов ==="
+    printfn $"Сравнение на {showDate lDate}:"
+    lastBaskets |> List.iter (fun (shop, cost) -> printfn $"  {shop}: {cost:F0} ₸")
+    printfn $"Разница между самой дешёвой и самой дорогой корзиной: {gapTenge:F0} ₸ ({gapPercent:F1}%%)"
+    printfn "Где дешевле по категориям:"
+    cheapestCats |> List.iter (fun (cat, shop) -> printfn $"  {cat}: {shop}")
+    printfn $"Самый большой разброс цен: {varProd} ({varGap:F0} ₸)"
+    printfn "Изменение корзины за неделю:"
+    changes |> List.iter (fun (shop, pct) -> printfn $"  {shop}: {pct:F1}%%")
+    printfn $"Товаров по акции: {promo:F1}%%"
+    printfn $"[Своя метрика] Наибольший скачок цены: {cProd} в {cShop} ({cPct:F1}%%)"
+
+printReport prices
+
